@@ -36,7 +36,7 @@ function toNumber(value, fallback) {
 
 module.exports = {
   env,
-  port: toNumber(process.env.PORT, 5000),
+  port: toNumber(process.env.PORT, 8080),
   mongo: {
     uri: process.env.MONGO_URI || '',
   },
