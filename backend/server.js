@@ -25,42 +25,22 @@ let graphCacheExpiresAt = 0;
 async function loadGraph() {
   const now = Date.now();
   if (graphCache && graphCacheExpiresAt > now) {
-    return graphCache;
-  }
-  let edges = [];
-
-  if (GRAPH_SOURCE === 'mongo' && MONGO_URI) {
-    try {
-      const client = new MongoClient(MONGO_URI);
-      await client.connect();
-      const db = client.db();
-      const col = db.collection('edges');
-      edges = await col.find({}).toArray();
-      await client.close();
-    } catch (err) {
-      console.error('Mongo load failed, falling back to local file', err);
-    }
+    return graphCache;  // both routes return same cached graph
   }
 
-  if (!edges.length) {
-    const samplePath = path.isAbsolute(GRAPH_SAMPLE_PATH)
-      ? GRAPH_SAMPLE_PATH
-      : path.resolve(__dirname, GRAPH_SAMPLE_PATH);
-    try {
-      const raw = fs.readFileSync(samplePath, 'utf-8');
-      const template = JSON.parse(raw);
-      edges = template.map(edge => ({
-        ...edge,
-        weight: Math.floor(Math.random() * 19) + 1  // random weight 1–19
-      }));
-    } catch (err) {
-      console.error('Failed to read sample graph file', err);
-      throw new Error('Graph data unavailable');
-    }
-  }
+  // Load base structure from file
+  const samplePath = path.resolve(GRAPH_SAMPLE_PATH);
+  const raw = fs.readFileSync(samplePath, 'utf-8');
+  const template = JSON.parse(raw);
+
+  // Assign random weights ONCE, then cache
+  const edges = template.map(edge => ({
+    ...edge,
+    weight: Math.floor(Math.random() * 19) + 1
+  }));
 
   graphCache = normalizeEdges(edges);
-  graphCacheExpiresAt = now + GRAPH_CACHE_TTL;
+  graphCacheExpiresAt = now + 60000; // cache for 60 seconds
   return graphCache;
 }
 
