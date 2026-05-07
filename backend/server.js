@@ -43,7 +43,9 @@ async function loadGraph() {
   }
 
   if (!edges.length) {
-    const samplePath = path.resolve(GRAPH_SAMPLE_PATH);
+    const samplePath = path.isAbsolute(GRAPH_SAMPLE_PATH)
+      ? GRAPH_SAMPLE_PATH
+      : path.resolve(__dirname, GRAPH_SAMPLE_PATH);
     try {
       const raw = fs.readFileSync(samplePath, 'utf-8');
       const template = JSON.parse(raw);
@@ -116,4 +118,13 @@ app.post('/api/shortest', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log('Server running on port', PORT));
+// ── Serve React frontend build in production ──
+const frontendBuild = path.join(__dirname, '..', 'frontend', 'build');
+app.use(express.static(frontendBuild));
+
+// SPA catch-all: any non-API route serves index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendBuild, 'index.html'));
+});
+
+app.listen(PORT, '0.0.0.0', () => console.log('Server running on port', PORT));
